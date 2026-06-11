@@ -1,0 +1,55 @@
+name: Debug ISO build
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+  issues: write
+
+jobs:
+  debug:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Maximize build space
+        uses: ublue-os/remove-unwanted-software@cc0becac701cf642c8f0a6613bbdaf5dc36b259e # v9
+        with:
+          remove-codeql: true
+
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Reproduce ISO build with full logging
+        run: |
+          set -x
+          df -h / | tee -a debug.log
+          echo "=== PULL PHASE ===" | tee -a debug.log
+          sudo podman pull ghcr.io/chulsaheng/techoos:latest 2>&1 | tail -n 20 | tee -a debug.log || echo "PULL FAILED rc=$?" | tee -a debug.log
+          df -h / | tee -a debug.log
+          echo "=== BIB PHASE ===" | tee -a debug.log
+          mkdir -p output
+          sudo podman run --rm --privileged \
+            --security-opt label=type:unconfined_t \
+            -v ./disk_config/iso.toml:/config.toml:ro \
+            -v ./output:/output \
+            -v /var/lib/containers/storage:/var/lib/containers/storage \
+            quay.io/centos-bootc/bootc-image-builder:latest \
+            --type anaconda-iso --use-librepo=True \
+            ghcr.io/chulsaheng/techoos:latest 2>&1 | tee bib.log || echo "BIB FAILED rc=$?" | tee -a debug.log
+          df -h / | tee -a debug.log
+        continue-on-error: true
+
+      - name: Post logs to issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo '### Debug run results'
+            echo '```'
+            tail -n 60 debug.log 2>/dev/null
+            echo '--- last 120 lines of builder output ---'
+            tail -n 120 bib.log 2>/dev/null
+            echo '```'
+          } > comment.md
+          gh issue comment 2 --repo chulsaheng/techoos --body-file comment.md
