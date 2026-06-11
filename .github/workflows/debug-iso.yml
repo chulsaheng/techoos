@@ -34,7 +34,7 @@ jobs:
             -v ./output:/output \
             -v /var/lib/containers/storage:/var/lib/containers/storage \
             quay.io/centos-bootc/bootc-image-builder:latest \
-            --type anaconda-iso --use-librepo=True \
+            --type anaconda-iso --use-librepo=True --rootfs btrfs \
             ghcr.io/chulsaheng/techoos:latest 2>&1 | tee bib.log || echo "BIB FAILED rc=$?" | tee -a debug.log
           df -h / | tee -a debug.log
         continue-on-error: true
