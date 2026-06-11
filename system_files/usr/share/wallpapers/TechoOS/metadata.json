@@ -1,0 +1,13 @@
+{
+    "KPlugin": {
+        "Id": "TechoOS",
+        "Name": "Angkor Dawn",
+        "Description": "Sunrise over the five towers of Angkor Wat — the default TechoOS wallpaper.",
+        "Authors": [
+            {
+                "Name": "TechoOS Project"
+            }
+        ],
+        "License": "CC0-1.0"
+    }
+}

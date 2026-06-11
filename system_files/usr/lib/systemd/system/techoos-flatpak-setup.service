@@ -1,0 +1,14 @@
+[Unit]
+Description=TechoOS first-boot flatpak setup
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=!/etc/techoos-flatpaks-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/techoos-flatpak-setup
+RemainAfterExit=yes
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target

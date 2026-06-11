@@ -1,0 +1,4 @@
+[General]
+# Khmer red (#E00025) from the Cambodian flag as the system accent color.
+# Swap to royal blue with: AccentColor=3,46,161  (#032EA1)
+AccentColor=224,0,37

@@ -1,0 +1,35 @@
+#!/usr/bin/bash
+# TechoOS first-boot flatpak setup
+# Installs the TechoOS app suite system-wide from Flathub, then disables itself.
+
+set -uo pipefail
+
+FLATPAK_LIST="/usr/share/techoos/flatpaks"
+STAMP="/etc/techoos-flatpaks-done"
+
+if [[ -f "$STAMP" ]]; then
+    echo "TechoOS flatpaks already installed, nothing to do."
+    exit 0
+fi
+
+# Make sure Flathub is available system-wide
+flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+failed=0
+while IFS= read -r app; do
+    # skip blank lines and comments
+    [[ -z "$app" || "$app" == \#* ]] && continue
+    echo "Installing $app ..."
+    if ! flatpak install --system --noninteractive -y flathub "$app"; then
+        echo "WARNING: failed to install $app, will retry on next boot."
+        failed=1
+    fi
+done < "$FLATPAK_LIST"
+
+if [[ "$failed" -eq 0 ]]; then
+    touch "$STAMP"
+    echo "TechoOS flatpak setup complete."
+else
+    # Exit non-zero so the service retries on the next boot
+    exit 1
+fi
