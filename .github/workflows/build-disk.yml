@@ -2,6 +2,10 @@
 name: Build disk images
 
 on:
+  workflow_run:
+    workflows: ["Build container image"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       upload-to-s3:
@@ -35,8 +39,9 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     name: Build disk images
-    runs-on: ${{ inputs.platform == 'amd64' && 'ubuntu-24.04' || 'ubuntu-24.04-arm' }}
+    runs-on: ${{ inputs.platform == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     strategy:
       fail-fast: false
       matrix:

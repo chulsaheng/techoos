@@ -22,3 +22,19 @@ systemctl enable techoos-flatpak-setup.service
 
 # --- Branding ---
 sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS"/' /usr/lib/os-release
+
+# --- Fix anaconda-ISO depsolving ---
+# bootc-image-builder reads the repo files baked into this image. Any repo
+# whose gpgkey points at a file:// path that doesn't exist (e.g. Bazzite's
+# terra-mesa repo) aborts the ISO build. Disable such repos automatically.
+for repo in /etc/yum.repos.d/*.repo; do
+    missing=0
+    for url in $(grep -oE 'file://[^[:space:]]+' "$repo" || true); do
+        path="${url#file://}"
+        [ -e "$path" ] || missing=1
+    done
+    if [ "$missing" = "1" ]; then
+        echo "Disabling $repo (references missing GPG key file)"
+        sed -i 's/^enabled[[:space:]]*=[[:space:]]*1/enabled=0/' "$repo"
+    fi
+done
