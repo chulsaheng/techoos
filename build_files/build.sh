@@ -24,17 +24,30 @@ systemctl enable techoos-flatpak-setup.service
 sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS"/' /usr/lib/os-release
 
 # --- Fix anaconda-ISO depsolving ---
-# bootc-image-builder reads the repo files baked into this image. Any repo
-# whose gpgkey points at a file:// path that doesn't exist (e.g. Bazzite's
-# terra-mesa repo) aborts the ISO build. Disable such repos automatically.
+# bootc-image-builder reads the repo files baked into this image. Repos whose
+# gpgkey points at a missing file:// path abort the ISO build. Expand dnf
+# variables before checking so healthy repos (fedora, updates) stay enabled.
+releasever="$(rpm -E %fedora)"
+basearch="$(uname -m)"
 for repo in /etc/yum.repos.d/*.repo; do
     missing=0
     for url in $(grep -oE 'file://[^[:space:]]+' "$repo" || true); do
         path="${url#file://}"
+        path="${path//\$releasever/$releasever}"
+        path="${path//\$basearch/$basearch}"
+        path="${path//\$\{releasever\}/$releasever}"
+        path="${path//\$\{basearch\}/$basearch}"
         [ -e "$path" ] || missing=1
     done
     if [ "$missing" = "1" ]; then
         echo "Disabling $repo (references missing GPG key file)"
         sed -i 's/^enabled[[:space:]]*=[[:space:]]*1/enabled=0/' "$repo"
     fi
+done
+# terra repos break bib's depsolver regardless (releasever mismatch inside
+# the builder container) — disable them outright.
+for repo in /etc/yum.repos.d/terra*.repo; do
+    [ -e "$repo" ] || continue
+    echo "Disabling $repo (terra repos break ISO depsolve)"
+    sed -i 's/^enabled[[:space:]]*=[[:space:]]*1/enabled=0/' "$repo"
 done
