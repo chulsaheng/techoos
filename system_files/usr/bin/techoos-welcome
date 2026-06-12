@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+# TechoOS Welcome — first-login setup (GNOME edition)
+import os, shutil, sys
+
+MARK = os.path.expanduser("~/.config/techoos/welcome-done")
+if os.path.exists(MARK):
+    sys.exit(0)
+
+import gi
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Gtk, Adw, Gio
+
+
+class Welcome(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id="org.techoos.Welcome")
+
+    def do_activate(self):
+        self.win = Adw.ApplicationWindow(application=self, title="Welcome to TechoOS",
+                                         default_width=480, default_height=420,
+                                         resizable=False)
+        tv = Adw.ToolbarView()
+        tv.add_top_bar(Adw.HeaderBar())
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=18,
+                      margin_top=18, margin_bottom=24, margin_start=28, margin_end=28)
+
+        title = Gtk.Label()
+        title.set_markup("<span size='x-large' weight='bold'>សូមស្វាគមន៍ — Welcome to TechoOS 2.0</span>")
+        title.set_wrap(True)
+        box.append(title)
+
+        sub = Gtk.Label(label="Two quick choices and you're done.")
+        sub.add_css_class("dim-label")
+        box.append(sub)
+
+        # --- Theme choice: visual bullet (radio) buttons ---
+        theme_group = Adw.PreferencesGroup(title="Appearance")
+        self.light = Gtk.CheckButton()           # radio bullets, not switches
+        self.dark = Gtk.CheckButton(group=self.light)
+        row_l = Adw.ActionRow(title="☀  Light theme", subtitle="Bright and airy")
+        row_l.add_prefix(self.light)
+        row_l.set_activatable_widget(self.light)
+        row_d = Adw.ActionRow(title="🌙  Dark theme", subtitle="Sleek and easy on the eyes")
+        row_d.add_prefix(self.dark)
+        row_d.set_activatable_widget(self.dark)
+        self.light.set_active(True)
+        theme_group.add(row_l)
+        theme_group.add(row_d)
+        box.append(theme_group)
+
+        # --- Background bundle tick ---
+        extra_group = Adw.PreferencesGroup(title="Extras")
+        self.bundle = Gtk.CheckButton()
+        row_b = Adw.ActionRow(title="Install TechoOS Background Bundle",
+                              subtitle="5 additional Cambodia wallpapers")
+        row_b.add_prefix(self.bundle)
+        row_b.set_activatable_widget(self.bundle)
+        self.bundle.set_active(True)
+        extra_group.add(row_b)
+        box.append(extra_group)
+
+        btn = Gtk.Button(label="Apply and start exploring")
+        btn.add_css_class("suggested-action")
+        btn.add_css_class("pill")
+        btn.set_halign(Gtk.Align.CENTER)
+        btn.connect("clicked", self.apply)
+        box.append(btn)
+
+        tv.set_content(box)
+        self.win.set_content(tv)
+        self.win.present()
+
+    def apply(self, _btn):
+        try:
+            s = Gio.Settings.new("org.gnome.desktop.interface")
+            s.set_string("color-scheme",
+                         "prefer-dark" if self.dark.get_active() else "default")
+        except Exception:
+            pass
+        if self.bundle.get_active():
+            try:
+                dst = os.path.expanduser("~/.local/share/gnome-background-properties")
+                os.makedirs(dst, exist_ok=True)
+                shutil.copy("/usr/share/techoos/bundle-xml/techoos-bundle.xml", dst)
+            except Exception:
+                pass
+        os.makedirs(os.path.dirname(MARK), exist_ok=True)
+        open(MARK, "w").write("done\n")
+        self.win.close()
+
+
+Welcome().run(None)

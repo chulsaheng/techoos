@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=TechoOS Welcome
+Comment=First-login setup for TechoOS
+Exec=/usr/bin/techoos-welcome
+Icon=techoos
+OnlyShowIn=GNOME;
+X-GNOME-Autostart-Delay=6

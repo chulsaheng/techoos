@@ -27,8 +27,18 @@ concurrency:
 
 jobs:
   build_push:
-    name: Build and push image
+    name: Build and push image (${{ matrix.variant }})
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: gnome
+            image-name: techoos
+            base-image: ghcr.io/ublue-os/bazzite-gnome-nvidia-open:stable
+          - variant: kde
+            image-name: techoos-kde
+            base-image: ghcr.io/ublue-os/bazzite-nvidia-open:stable
 
     permissions:
       contents: read
@@ -38,9 +48,9 @@ jobs:
     steps:
       - name: Prepare environment
         run: |
-          # Lowercase the image uri
+          # Lowercase the image uri; per-variant image name
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${{ matrix.image-name }}" >> ${GITHUB_ENV}
 
       # These stage versions are pinned by https://github.com/renovatebot/renovate
       - name: Checkout
@@ -104,6 +114,9 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           oci: false
+          build-args: |
+            BASE_IMAGE=${{ matrix.base-image }}
+            VARIANT=${{ matrix.variant }}
 
       # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
       # This does not make your image faster to download, just provides better resumability and fixes a few errors.

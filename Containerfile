@@ -8,7 +8,9 @@ COPY build_files /
 # For pre-Turing GPUs use: ghcr.io/ublue-os/bazzite-nvidia:stable
 # For AMD/Intel use:       ghcr.io/ublue-os/bazzite:stable
 # ============================================================
-FROM ghcr.io/ublue-os/bazzite-nvidia-open:stable
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-gnome-nvidia-open:stable
+FROM ${BASE_IMAGE}
+ARG VARIANT=gnome
 
 # Copy TechoOS system files (flatpak list, first-boot service, branding)
 COPY system_files /
@@ -21,7 +23,7 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build.sh
+    VARIANT=${VARIANT} /ctx/build.sh
 
 ### LINTING
 ## Verify final image and contents are correct.

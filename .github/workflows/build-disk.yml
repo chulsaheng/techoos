@@ -45,7 +45,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        disk-type: ["qcow2", "anaconda-iso"]
+        include:
+          - variant: gnome
+            image-name: techoos
+            config-file: ./disk_config/iso.toml
+            iso-name: TechoOS-GNOME.iso
+          - variant: kde
+            image-name: techoos-kde
+            config-file: ./disk_config/iso-kde.toml
+            iso-name: TechoOS-KDE.iso
     permissions:
       contents: read
       packages: read
@@ -87,25 +95,24 @@ jobs:
         uses: osbuild/bootc-image-builder-action@main
         with:
           builder-image: ${{ env.BIB_IMAGE }}
-          config-file: ${{ matrix.disk-type == 'anaconda-iso' && './disk_config/iso.toml' || './disk_config/disk.toml' }}
-          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}
+          config-file: ${{ matrix.config-file }}
+          image: ${{ env.IMAGE_REGISTRY }}/${{ matrix.image-name }}:${{ env.DEFAULT_TAG }}
           chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
-          types: ${{ matrix.disk-type }}
+          types: anaconda-iso
           additional-args: --use-librepo=True --rootfs btrfs
 
-      - name: Rename ISO to TechoOS.iso
-        if: matrix.disk-type == 'anaconda-iso'
+      - name: Rename ISO to ${{ matrix.iso-name }}
         run: |
           sudo find "${{ steps.build.outputs.output-directory }}" -name "*.iso" | while read -r f; do
-            sudo mv "$f" "$(dirname "$f")/TechoOS.iso"
-            echo "Renamed $f -> TechoOS.iso"
+            sudo mv "$f" "$(dirname "$f")/${{ matrix.iso-name }}"
+            echo "Renamed $f -> ${{ matrix.iso-name }}"
           done
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: techoos-${{ matrix.disk-type }}
+          name: techoos-${{ matrix.variant }}-iso
           path: ${{ steps.build.outputs.output-directory }}
           if-no-files-found: error
           retention-days: 0
