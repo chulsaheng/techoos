@@ -44,6 +44,18 @@ for theme in spinner bgrt; do
     [ -d "$dir" ] && cp /usr/share/techoos/branding/watermark.png "$dir/watermark.png"
 done
 
+# --- Identity: hostname (user@techoos, not user@bazzite) ---
+echo "techoos" > /etc/hostname
+
+# --- Remove Bazzite artwork so only TechoOS branding remains ---
+rm -f /usr/share/gnome-background-properties/bazzite*.xml || true
+rm -rf /usr/share/backgrounds/bazzite* || true
+rm -rf /usr/share/wallpapers/Bazzite* || true
+# Override Bazzite's own fastfetch config so even its alias shows TechoOS
+if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
+    cp /etc/fastfetch/config.jsonc /usr/share/ublue-os/fastfetch.jsonc
+fi
+
 # --- Branding: TechoOS 2.0 identity ---
 sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
