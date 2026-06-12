@@ -1,3 +1,4 @@
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-gnome-nvidia-open:stable
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
@@ -8,7 +9,6 @@ COPY build_files /
 # For pre-Turing GPUs use: ghcr.io/ublue-os/bazzite-nvidia:stable
 # For AMD/Intel use:       ghcr.io/ublue-os/bazzite:stable
 # ============================================================
-ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite-gnome-nvidia-open:stable
 FROM ${BASE_IMAGE}
 ARG VARIANT=gnome
 
