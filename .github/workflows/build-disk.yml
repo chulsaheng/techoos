@@ -108,6 +108,21 @@ jobs:
             echo "Renamed $f -> ${{ matrix.iso-name }}"
           done
 
+      - name: Inject TechoOS installer branding (product.img)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq xorriso cpio
+          ISO=$(sudo find "${{ steps.build.outputs.output-directory }}" -name "*.iso" | head -1)
+          echo "Branding $ISO"
+          mkdir -p /tmp/product/pixmaps
+          cp branding/installer/installer-sidebar-logo.png /tmp/product/pixmaps/sidebar-logo.png
+          cp branding/installer/installer-sidebar-bg.png   /tmp/product/pixmaps/sidebar-bg.png
+          cp branding/installer/installer-topbar-bg.png    /tmp/product/pixmaps/topbar-bg.png
+          (cd /tmp/product && find . | cpio -c -o --quiet | gzip -9) > /tmp/product.img
+          sudo xorriso -indev "$ISO" -outdev "$ISO.branded" \
+            -boot_image any replay -map /tmp/product.img /images/product.img
+          sudo mv "$ISO.branded" "$ISO"
+          echo "product.img injected"
+
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
