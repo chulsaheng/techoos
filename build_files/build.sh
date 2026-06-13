@@ -20,12 +20,14 @@ if [ "$VARIANT" = "gnome" ]; then
     dnf5 install -y gnome-shell-extension-dash-to-dock papirus-icon-theme
 
     # System-wide GNOME defaults (animations off, dock, wallpaper, weather)
-    # delivered via dconf db at /etc/dconf/db/local.d/01-techoos
+    # TechoOS db must OUTRANK the base image's dbs, so insert it directly
+    # after user-db (first system-db wins in dconf).
+    mkdir -p /etc/dconf/profile
     if [ -f /etc/dconf/profile/user ]; then
-        grep -q '^system-db:local$' /etc/dconf/profile/user || \
-            echo 'system-db:local' >> /etc/dconf/profile/user
+        grep -v '^system-db:local$' /etc/dconf/profile/user > /tmp/dconf-user || true
+        awk '{print} /^user-db:user$/ && !d {print "system-db:local"; d=1}' /tmp/dconf-user > /etc/dconf/profile/user
+        grep -q '^system-db:local$' /etc/dconf/profile/user || sed -i '1i system-db:local' /etc/dconf/profile/user
     else
-        mkdir -p /etc/dconf/profile
         printf 'user-db:user\nsystem-db:local\n' > /etc/dconf/profile/user
     fi
     dconf update
@@ -38,11 +40,26 @@ fi
 chmod +x /usr/bin/techoos-flatpak-setup
 systemctl enable techoos-flatpak-setup.service
 
+# --- De-Bazzite: artwork, hostname, fastfetch ---
+# Remove Bazzite wallpapers so TechoOS artwork is the only branding
+rm -rf /usr/share/backgrounds/bazzite* /usr/share/wallpapers/Bazzite* || true
+# Default computer name: user@techoos instead of user@bazzite
+echo "techoos" > /etc/hostname
+# Bazzite's shell alias points fastfetch at its own config — replace it
+if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
+    cp /etc/fastfetch/config.jsonc /usr/share/ublue-os/fastfetch.jsonc
+fi
+
 # --- Boot splash: TechoOS watermark on the Plymouth spinner theme ---
 for theme in spinner bgrt; do
     dir="/usr/share/plymouth/themes/${theme}"
-    [ -d "$dir" ] && cp /usr/share/techoos/branding/watermark.png "$dir/watermark.png"
+    if [ -d "$dir" ]; then
+        cp /usr/share/techoos/branding/watermark.png "$dir/watermark.png"
+    fi
 done
+# Plymouth runs from the initramfs, so rebuild it to include the watermark
+KVER="$(basename "$(find /usr/lib/modules -maxdepth 1 -mindepth 1 -type d | head -1)")"
+dracut --force --no-hostonly --kver "$KVER" "/usr/lib/modules/${KVER}/initramfs.img"
 
 # --- Identity: hostname (user@techoos, not user@bazzite) ---
 echo "techoos" > /etc/hostname
