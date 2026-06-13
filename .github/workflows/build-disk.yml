@@ -55,7 +55,7 @@ jobs:
             config-file: ./disk_config/iso-kde.toml
             iso-name: TechoOS-KDE.iso
     permissions:
-      contents: read
+      contents: write
       packages: read
       id-token: write
 
@@ -122,6 +122,54 @@ jobs:
             -boot_image any replay -map /tmp/product.img /images/product.img
           sudo mv "$ISO.branded" "$ISO"
           echo "product.img injected"
+
+      - name: Compress, split, and publish to GitHub Release
+        if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq zstd
+          OUT="${{ steps.build.outputs.output-directory }}"
+          ISO=$(sudo find "$OUT" -name "${{ matrix.iso-name }}" | head -1)
+          base="${{ matrix.iso-name }}"            # e.g. TechoOS-GNOME.iso
+          work=/tmp/release; mkdir -p "$work"
+
+          echo "Compressing $base with zstd…"
+          sudo zstd -T0 -15 "$ISO" -o "$work/${base}.zst"
+
+          # Split into 1900MB parts to stay under the 2GB Release asset limit
+          echo "Splitting into parts…"
+          ( cd "$work" && split -b 1900M -d --additional-suffix=.part "${base}.zst" "${base}.zst." && rm -f "${base}.zst" )
+
+          # Checksums: the raw ISO (for verification after rejoin) and each part
+          echo "Hashing…"
+          ISO_SHA=$(sudo sha256sum "$ISO" | awk '{print $1}')
+          ( cd "$work" && sha256sum *.part > SHA256SUMS.${{ matrix.variant }}.txt )
+          echo "${ISO_SHA}  ${base}" | sudo tee -a "$work/SHA256SUMS.${{ matrix.variant }}.txt"
+
+          # A tiny rejoin helper so users can reassemble easily
+          cat > "$work/REJOIN-${{ matrix.variant }}.txt" <<EOT
+          TechoOS ${{ matrix.variant }} — reassemble the ISO:
+
+          Linux/macOS:
+            cat ${base}.zst.*.part > ${base}.zst
+            zstd -d ${base}.zst -o ${base}
+            sha256sum ${base}     # compare with SHA256SUMS
+
+          Windows (PowerShell, needs 7-Zip or zstd):
+            cmd /c copy /b "${base}.zst.00.part+${base}.zst.01.part+${base}.zst.02.part" ${base}.zst
+            zstd -d ${base}.zst -o ${base}
+            Get-FileHash ${base}
+          EOT
+
+          echo "Publishing release techoos-2.0.2…"
+          gh release view techoos-2.0.2 --repo ${{ github.repository }} >/dev/null 2>&1 \
+            || gh release create techoos-2.0.2 --repo ${{ github.repository }} \
+                 --title "TechoOS 2.0.2 (Angkor)" \
+                 --notes "Compressed, split ISO downloads served from GitHub's CDN. Download all parts for an edition plus its REJOIN and SHA256SUMS files, then reassemble." \
+                 --latest
+          gh release upload techoos-2.0.2 --repo ${{ github.repository }} --clobber "$work"/*
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
