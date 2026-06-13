@@ -70,17 +70,12 @@ if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
     cp /etc/fastfetch/config.jsonc /usr/share/ublue-os/fastfetch.jsonc
 fi
 
-# --- Boot splash: stamp TechoOS watermark into every Plymouth theme ---
-# (including Bazzite's own theme, which is the active one on Bazzite bases)
-for dir in /usr/share/plymouth/themes/*/; do
-    t="$(basename "$dir")"
-    if [ -f "${dir}watermark.png" ] || [ "$t" = "spinner" ] || [ "$t" = "bgrt" ]; then
-        cp /usr/share/techoos/branding/watermark.png "${dir}watermark.png"
-    fi
-done
-# Plymouth runs from the initramfs, so rebuild it to include the watermark
-KVER="$(basename "$(find /usr/lib/modules -maxdepth 1 -mindepth 1 -type d | head -1)")"
-dracut --force --no-hostonly --kver "$KVER" "/usr/lib/modules/${KVER}/initramfs.img"
+# --- Boot splash ---
+# NOTE: deferred to 2.1. The previous approach rebuilt the initramfs at image
+# build time (dracut --force), which on an OSTree/atomic base produces an
+# initramfs missing the root-mount logic and drops the booted system into
+# dracut emergency mode. A safe Plymouth theme (no initramfs rebuild) will
+# land in a later release. Boot reliability comes first.
 
 
 # --- Remove Bazzite artwork so only TechoOS branding remains ---
@@ -93,11 +88,11 @@ if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
 fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.2"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.2 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.2 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release

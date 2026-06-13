@@ -25,6 +25,18 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=tmpfs,dst=/tmp \
     VARIANT=${VARIANT} /ctx/build.sh
 
+### SAFETY GUARD
+## Ensure we did NOT ship a broken image-built initramfs. The OSTree-managed
+## initramfs must contain the ostree hook, or the installed system drops to
+## dracut emergency mode at boot (the 2.0/2.0.1 bug).
+RUN set -e; \
+    img="$(find /usr/lib/modules -name initramfs.img | head -1)"; \
+    if [ -n "$img" ]; then \
+        lsinitrd "$img" 2>/dev/null | grep -q ostree \
+            || { echo "FATAL: initramfs missing ostree hook — would not boot"; exit 1; }; \
+        echo "initramfs sanity check passed"; \
+    fi
+
 ### LINTING
 ## Verify final image and contents are correct.
 RUN bootc container lint
