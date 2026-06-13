@@ -70,11 +70,12 @@ if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
     cp /etc/fastfetch/config.jsonc /usr/share/ublue-os/fastfetch.jsonc
 fi
 
-# --- Boot splash: TechoOS watermark on the Plymouth spinner theme ---
-for theme in spinner bgrt; do
-    dir="/usr/share/plymouth/themes/${theme}"
-    if [ -d "$dir" ]; then
-        cp /usr/share/techoos/branding/watermark.png "$dir/watermark.png"
+# --- Boot splash: stamp TechoOS watermark into every Plymouth theme ---
+# (including Bazzite's own theme, which is the active one on Bazzite bases)
+for dir in /usr/share/plymouth/themes/*/; do
+    t="$(basename "$dir")"
+    if [ -f "${dir}watermark.png" ] || [ "$t" = "spinner" ] || [ "$t" = "bgrt" ]; then
+        cp /usr/share/techoos/branding/watermark.png "${dir}watermark.png"
     fi
 done
 # Plymouth runs from the initramfs, so rebuild it to include the watermark
