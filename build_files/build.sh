@@ -32,6 +32,26 @@ if [ "$VARIANT" = "gnome" ]; then
     fi
     dconf update
 
+    # Strongest enforcement: gsettings schema override (zz1- sorts last = wins
+    # over any Bazzite override file)
+    cat > /usr/share/glib-2.0/schemas/zz1-techoos.gschema.override <<'OVR'
+[org.gnome.desktop.interface]
+enable-animations=false
+icon-theme='Papirus'
+
+[org.gnome.desktop.background]
+picture-uri='file:///usr/share/backgrounds/techoos/techoos-default.jpg'
+picture-uri-dark='file:///usr/share/backgrounds/techoos/techoos-default.jpg'
+picture-options='zoom'
+
+[org.gnome.desktop.screensaver]
+picture-uri='file:///usr/share/backgrounds/techoos/techoos-default.jpg'
+
+[org.gnome.shell]
+enabled-extensions=['dash-to-dock@micxgx.gmail.com']
+OVR
+    glib-compile-schemas /usr/share/glib-2.0/schemas/
+
     # Welcome app (first login: theme bullets + background bundle tick)
     chmod +x /usr/bin/techoos-welcome
 fi
@@ -61,8 +81,6 @@ done
 KVER="$(basename "$(find /usr/lib/modules -maxdepth 1 -mindepth 1 -type d | head -1)")"
 dracut --force --no-hostonly --kver "$KVER" "/usr/lib/modules/${KVER}/initramfs.img"
 
-# --- Identity: hostname (user@techoos, not user@bazzite) ---
-echo "techoos" > /etc/hostname
 
 # --- Remove Bazzite artwork so only TechoOS branding remains ---
 rm -f /usr/share/gnome-background-properties/bazzite*.xml || true
@@ -85,6 +103,18 @@ grep -q '^LOGO=' /usr/lib/os-release && \
 
 # Refresh icon cache so the techoos logo icon is picked up
 gtk-update-icon-cache -f /usr/share/icons/hicolor || true
+
+# Replace Fedora logo pixmaps where present
+for f in /usr/share/pixmaps/fedora-logo.png /usr/share/pixmaps/fedora-logo-small.png \
+         /usr/share/pixmaps/system-logo-white.png /usr/share/pixmaps/fedora_logo.png; do
+    [ -f "$f" ] && cp /usr/share/pixmaps/techoos.png "$f" || true
+done
+
+# neofetch compatibility: alias to fastfetch (neofetch is unmaintained upstream)
+cat > /etc/profile.d/techoos-fetch.sh <<'ALIAS'
+alias neofetch='fastfetch'
+ALIAS
+chmod 644 /etc/profile.d/techoos-fetch.sh
 
 # --- Fix anaconda-ISO depsolving ---
 # bootc-image-builder reads the repo files baked into this image. Repos whose
