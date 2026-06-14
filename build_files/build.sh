@@ -19,6 +19,28 @@ for pkg in khmer-os-fonts khmeros-fonts khmeros-base-fonts khmer-os-system-fonts
     dnf5 install -y "$pkg" 2>/dev/null && { echo "Installed $pkg"; break; } || true
 done
 
+# --- Pre-installed app suite (baked into the image like Nobara/Ubuntu Studio) ---
+# These are native RPMs from Fedora + RPMFusion (already enabled on Bazzite), so
+# they are present ON the ISO and installed DURING installation — available
+# immediately at first login, no network, no first-boot download.
+mkdir -p /usr/share/techoos
+: > /usr/share/techoos/app-install.log
+APPS=(
+  libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw
+  libreoffice-langpack-km        # Khmer LibreOffice interface/spelling
+  gimp inkscape blender darktable digikam
+  vlc audacity kdenlive obs-studio HandBrake-gui
+  pdfarranger qbittorrent
+)
+for pkg in "${APPS[@]}"; do
+    if dnf5 install -y "$pkg" >>/usr/share/techoos/app-install.log 2>&1; then
+        echo "OK    $pkg"   | tee -a /usr/share/techoos/app-install.log
+    else
+        echo "FAILED $pkg"  | tee -a /usr/share/techoos/app-install.log
+    fi
+done
+echo "App suite layering finished. Summary in /usr/share/techoos/app-install.log"
+
 # --- GNOME edition extras ---
 if [ "$VARIANT" = "gnome" ]; then
     # Dash to Dock + Papirus icon theme
@@ -76,12 +98,31 @@ if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
     cp /etc/fastfetch/config.jsonc /usr/share/ublue-os/fastfetch.jsonc
 fi
 
-# --- Boot splash ---
-# NOTE: deferred to 2.1. The previous approach rebuilt the initramfs at image
-# build time (dracut --force), which on an OSTree/atomic base produces an
-# initramfs missing the root-mount logic and drops the booted system into
-# dracut emergency mode. A safe Plymouth theme (no initramfs rebuild) will
-# land in a later release. Boot reliability comes first.
+# --- TechoOS boot splash (Plymouth) ---
+# Build a TechoOS theme from the stock spinner theme + our logo, set it default,
+# and regenerate the initramfs WITH the ostree module explicitly added. The
+# Containerfile guard verifies the initramfs still contains the ostree hook and
+# FAILS the build if not — so a broken splash can never ship and break boot
+# again (the 2.0 bug). --add ostree is the fix for that earlier failure.
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+    src=/usr/share/plymouth/themes/spinner
+    dst=/usr/share/plymouth/themes/techoos
+    if [ -d "$src" ]; then
+        rm -rf "$dst"; cp -r "$src" "$dst"
+        cp /usr/share/techoos/branding/watermark.png "$dst/watermark.png" 2>/dev/null || true
+        if [ -f "$dst/spinner.plymouth" ]; then
+            mv "$dst/spinner.plymouth" "$dst/techoos.plymouth"
+            sed -i 's/^Name=.*/Name=TechoOS/' "$dst/techoos.plymouth"
+        fi
+        plymouth-set-default-theme techoos || true
+    fi
+    KVER="$(ls /usr/lib/modules | head -1)"
+    if [ -n "$KVER" ] && [ -d "/usr/lib/modules/$KVER" ]; then
+        dracut --force --no-hostonly --add ostree --kver "$KVER" \
+            "/usr/lib/modules/$KVER/initramfs.img" \
+            || echo "WARNING: initramfs regen failed; Containerfile guard will catch it"
+    fi
+fi
 
 
 # --- Remove Bazzite artwork so only TechoOS branding remains ---
@@ -111,11 +152,11 @@ for f in /usr/share/ublue-os/fastfetch.jsonc /usr/share/bazzite/fastfetch.jsonc;
 done
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.3"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.4"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.3 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.3 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.4 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.4 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release
