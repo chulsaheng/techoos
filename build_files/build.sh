@@ -146,17 +146,30 @@ for f in \
     [ -e "$f" ] && cp /usr/share/pixmaps/techoos.png "$f" || true
 done
 
-# Override Bazzite's own fastfetch config so even its shell alias shows TechoOS
-for f in /usr/share/ublue-os/fastfetch.jsonc /usr/share/bazzite/fastfetch.jsonc; do
-    [ -f "$f" ] && cp /etc/fastfetch/config.jsonc "$f" || true
-done
+# Make the terminal fastfetch show the TechoOS shield, not Bazzite.
+# Ground truth from image inspection: Bazzite's config is at
+# /usr/share/ublue-os/bazzite/fastfetch.jsonc, launched by
+# /etc/profile.d/bazzite-neofetch.sh -> /usr/libexec/bazzite-bling-fastfetch.
+install -Dm644 /etc/fastfetch/config.jsonc /usr/share/techoos/fastfetch.jsonc
+# (belt) point Bazzite's own config file at our logo
+[ -d /usr/share/ublue-os/bazzite ] && \
+    cp /usr/share/techoos/fastfetch.jsonc /usr/share/ublue-os/bazzite/fastfetch.jsonc || true
+# (suspenders) hijack Bazzite's launcher so it always uses our config —
+# single chokepoint, immune to whatever flags the original passed
+if [ -f /usr/libexec/bazzite-bling-fastfetch ]; then
+    cat > /usr/libexec/bazzite-bling-fastfetch <<'SH'
+#!/usr/bin/bash
+exec /usr/bin/fastfetch --config /usr/share/techoos/fastfetch.jsonc "$@"
+SH
+    chmod +x /usr/libexec/bazzite-bling-fastfetch
+fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.4"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.5"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.4 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.4 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.5 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.5 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release
