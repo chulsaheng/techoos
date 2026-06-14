@@ -1,13 +1,12 @@
 [Unit]
-Description=TechoOS first-boot flatpak setup
+Description=TechoOS app suite installer
 Wants=network-online.target
 After=network-online.target
-ConditionPathExists=!/etc/techoos-flatpaks-done
+ConditionPathExists=!/var/lib/techoos/flatpaks-done.v3
 
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/techoos-flatpak-setup
-RemainAfterExit=yes
 TimeoutStartSec=infinity
 
 [Install]

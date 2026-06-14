@@ -1,35 +1,48 @@
 #!/usr/bin/bash
-# TechoOS first-boot flatpak setup
-# Installs the TechoOS app suite system-wide from Flathub, then disables itself.
-
+# TechoOS first-boot flatpak setup — robust against late network (WiFi after login)
+# Installs the TechoOS app suite system-wide from Flathub, retrying until online.
 set -uo pipefail
 
 FLATPAK_LIST="/usr/share/techoos/flatpaks"
-STAMP="/etc/techoos-flatpaks-done"
+STAMP="/var/lib/techoos/flatpaks-done.v3"   # v3: new logic, ignores old stamps
+mkdir -p /var/lib/techoos
 
-if [[ -f "$STAMP" ]]; then
-    echo "TechoOS flatpaks already installed, nothing to do."
-    exit 0
+[[ -f "$STAMP" ]] && { echo "TechoOS flatpaks already complete."; exit 0; }
+
+# 1. Wait for real internet connectivity (not just an interface) — up to ~20 min
+ONLINE=0
+for i in $(seq 1 120); do
+    if curl -sf --max-time 8 https://dl.flathub.org/repo/ -o /dev/null; then ONLINE=1; break; fi
+    sleep 10
+done
+if [[ "$ONLINE" -ne 1 ]]; then
+    echo "No connectivity yet; will retry on next timer tick."
+    exit 1            # timer relaunches us later
 fi
 
-# Make sure Flathub is available system-wide
+# 2. Ensure Flathub is a system remote
 flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-failed=0
+# 3. Install each app; tolerate apps missing from the remote, retry real failures
+missing_network=0
 while IFS= read -r app; do
-    # skip blank lines and comments
     [[ -z "$app" || "$app" == \#* ]] && continue
+    if flatpak info --system "$app" >/dev/null 2>&1; then
+        echo "$app already installed."; continue
+    fi
+    if ! flatpak remote-info --system flathub "$app" >/dev/null 2>&1; then
+        echo "NOTE: $app not found on Flathub — skipping."; continue
+    fi
     echo "Installing $app ..."
     if ! flatpak install --system --noninteractive -y flathub "$app"; then
-        echo "WARNING: failed to install $app, will retry on next boot."
-        failed=1
+        echo "WARNING: install of $app failed (will retry)."; missing_network=1
     fi
 done < "$FLATPAK_LIST"
 
-if [[ "$failed" -eq 0 ]]; then
+if [[ "$missing_network" -eq 0 ]]; then
     touch "$STAMP"
     echo "TechoOS flatpak setup complete."
+    systemctl disable techoos-flatpak-setup.timer 2>/dev/null || true
 else
-    # Exit non-zero so the service retries on the next boot
-    exit 1
+    exit 1            # retry via timer
 fi

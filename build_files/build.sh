@@ -13,6 +13,11 @@ dnf5 install -y wine winetricks
 
 # Khmer language support: Noto Khmer fonts (sans, serif, UI)
 dnf5 install -y google-noto-sans-khmer-fonts google-noto-serif-khmer-fonts google-noto-sans-khmer-ui-fonts
+# KhmerOS font family for LibreOffice / legacy Khmer documents.
+# Package name varies by release; try known names, never fail the build.
+for pkg in khmer-os-fonts khmeros-fonts khmeros-base-fonts khmer-os-system-fonts; do
+    dnf5 install -y "$pkg" 2>/dev/null && { echo "Installed $pkg"; break; } || true
+done
 
 # --- GNOME edition extras ---
 if [ "$VARIANT" = "gnome" ]; then
@@ -59,6 +64,7 @@ fi
 # --- First-boot flatpak installer (16 apps, list in /usr/share/techoos/flatpaks) ---
 chmod +x /usr/bin/techoos-flatpak-setup
 systemctl enable techoos-flatpak-setup.service
+systemctl enable techoos-flatpak-setup.timer
 
 # --- De-Bazzite: artwork, hostname, fastfetch ---
 # Remove Bazzite wallpapers so TechoOS artwork is the only branding
@@ -80,19 +86,36 @@ fi
 
 # --- Remove Bazzite artwork so only TechoOS branding remains ---
 rm -f /usr/share/gnome-background-properties/bazzite*.xml || true
-rm -rf /usr/share/backgrounds/bazzite* || true
+rm -rf /usr/share/backgrounds/bazzite* /usr/share/backgrounds/Bazzite* || true
 rm -rf /usr/share/wallpapers/Bazzite* || true
-# Override Bazzite's own fastfetch config so even its alias shows TechoOS
-if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
-    cp /etc/fastfetch/config.jsonc /usr/share/ublue-os/fastfetch.jsonc
-fi
+
+# Replace every known distributor logo (Bazzite + Fedora) with the TechoOS shield
+for f in \
+    /usr/share/pixmaps/fedora-logo.png /usr/share/pixmaps/fedora-logo-small.png \
+    /usr/share/pixmaps/fedora_logo.png /usr/share/pixmaps/fedora_logo_med.png \
+    /usr/share/pixmaps/system-logo-white.png /usr/share/pixmaps/bazzite*.png \
+    /usr/share/pixmaps/poweredby.png ; do
+    [ -e "$f" ] && cp /usr/share/pixmaps/techoos.png "$f" || true
+done
+# GNOME "About" distributor logo lookups
+for f in \
+    /usr/share/icons/hicolor/scalable/apps/fedora-logo-icon.svg \
+    /usr/share/icons/hicolor/256x256/apps/fedora-logo-icon.png \
+    /usr/share/icons/hicolor/scalable/apps/bazzite*.svg ; do
+    [ -e "$f" ] && cp /usr/share/pixmaps/techoos.png "$f" || true
+done
+
+# Override Bazzite's own fastfetch config so even its shell alias shows TechoOS
+for f in /usr/share/ublue-os/fastfetch.jsonc /usr/share/bazzite/fastfetch.jsonc; do
+    [ -f "$f" ] && cp /etc/fastfetch/config.jsonc "$f" || true
+done
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.2"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.3"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.2 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.2 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.3 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.3 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release

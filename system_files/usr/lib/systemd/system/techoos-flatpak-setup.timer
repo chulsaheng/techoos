@@ -1,0 +1,11 @@
+[Unit]
+Description=Retry TechoOS app suite install until complete
+ConditionPathExists=!/var/lib/techoos/flatpaks-done.v3
+
+[Timer]
+OnBootSec=90s
+OnUnitInactiveSec=3min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

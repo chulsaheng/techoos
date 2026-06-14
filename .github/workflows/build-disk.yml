@@ -113,15 +113,23 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq xorriso cpio
           ISO=$(sudo find "${{ steps.build.outputs.output-directory }}" -name "*.iso" | head -1)
           echo "Branding $ISO"
-          mkdir -p /tmp/product/pixmaps
-          cp branding/installer/installer-sidebar-logo.png /tmp/product/pixmaps/sidebar-logo.png
-          cp branding/installer/installer-sidebar-bg.png   /tmp/product/pixmaps/sidebar-bg.png
-          cp branding/installer/installer-topbar-bg.png    /tmp/product/pixmaps/topbar-bg.png
+          # Anaconda reads branding from /run/install/product/, which overlays
+          # the live root — so files must sit at usr/share/anaconda/pixmaps/.
+          PX=/tmp/product/usr/share/anaconda/pixmaps
+          mkdir -p "$PX"
+          cp branding/installer/installer-sidebar-logo.png "$PX/sidebar-logo.png"
+          cp branding/installer/installer-sidebar-bg.png   "$PX/sidebar-bg.png"
+          cp branding/installer/installer-topbar-bg.png    "$PX/topbar-bg.png"
+          # Minimal CSS so the GTK installer actually uses our sidebar art
+          cat > "$PX/../anaconda-gtk.css" <<'CSS'
+          .logo-sidebar { background-image: url('/usr/share/anaconda/pixmaps/sidebar-bg.png'); background-color: #14201B; background-repeat: no-repeat; }
+          .logo { background-image: url('/usr/share/anaconda/pixmaps/sidebar-logo.png'); background-position: 50% 20px; background-repeat: no-repeat; }
+          CSS
           (cd /tmp/product && find . | cpio -c -o --quiet | gzip -9) > /tmp/product.img
           sudo xorriso -indev "$ISO" -outdev "$ISO.branded" \
             -boot_image any replay -map /tmp/product.img /images/product.img
           sudo mv "$ISO.branded" "$ISO"
-          echo "product.img injected"
+          echo "product.img injected (usr/share/anaconda/pixmaps)"
 
       - name: Compress, split, and publish to GitHub Release
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
@@ -163,13 +171,13 @@ jobs:
             Get-FileHash ${base}
           EOT
 
-          echo "Publishing release techoos-2.0.2…"
-          gh release view techoos-2.0.2 --repo ${{ github.repository }} >/dev/null 2>&1 \
-            || gh release create techoos-2.0.2 --repo ${{ github.repository }} \
+          echo "Publishing release techoos-2.0.3…"
+          gh release view techoos-2.0.3 --repo ${{ github.repository }} >/dev/null 2>&1 \
+            || gh release create techoos-2.0.3 --repo ${{ github.repository }} \
                  --title "TechoOS 2.0.2 (Angkor)" \
                  --notes "Compressed, split ISO downloads served from GitHub's CDN. Download all parts for an edition plus its REJOIN and SHA256SUMS files, then reassemble." \
                  --latest
-          gh release upload techoos-2.0.2 --repo ${{ github.repository }} --clobber "$work"/*
+          gh release upload techoos-2.0.3 --repo ${{ github.repository }} --clobber "$work"/*
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
