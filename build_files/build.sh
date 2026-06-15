@@ -26,6 +26,7 @@ done
 mkdir -p /usr/share/techoos
 : > /usr/share/techoos/app-install.log
 APPS=(
+  firefox                        # web browser
   libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw
   libreoffice-langpack-km        # Khmer LibreOffice interface/spelling
   gimp inkscape blender darktable digikam
@@ -99,30 +100,56 @@ if [ -f /usr/share/ublue-os/fastfetch.jsonc ]; then
 fi
 
 # --- TechoOS boot splash (Plymouth) ---
-# Build a TechoOS theme from the stock spinner theme + our logo, set it default,
-# and regenerate the initramfs WITH the ostree module explicitly added. The
-# Containerfile guard verifies the initramfs still contains the ostree hook and
-# FAILS the build if not — so a broken splash can never ship and break boot
-# again (the 2.0 bug). --add ostree is the fix for that earlier failure.
+# Goal (your request #1): show the laptop firmware logo with the TechoOS shield
+# beneath it. That is exactly what the stock "bgrt" theme does — and bgrt reads
+# its watermark from the spinner theme's folder. So we simply (1) drop our logo
+# in as the watermark, (2) force bgrt as the default theme, (3) remove the old
+# half-built techoos theme, (4) regenerate the initramfs WITH the ostree module
+# so Plymouth picks up the new watermark. The Containerfile guard fails the
+# build if the initramfs ever loses its ostree hook, so boot can't break.
+rm -rf /usr/share/plymouth/themes/techoos
+for d in /usr/share/plymouth/themes/spinner /usr/share/plymouth/themes/bgrt; do
+    [ -d "$d" ] && cp /usr/share/techoos/branding/watermark.png "$d/watermark.png" || true
+done
+# Single, unambiguous default theme (the diag found duplicate Theme= lines)
+mkdir -p /etc/plymouth
+printf '[Daemon]\nTheme=bgrt\n' > /etc/plymouth/plymouthd.conf
 if command -v plymouth-set-default-theme >/dev/null 2>&1; then
-    src=/usr/share/plymouth/themes/spinner
-    dst=/usr/share/plymouth/themes/techoos
-    if [ -d "$src" ]; then
-        rm -rf "$dst"; cp -r "$src" "$dst"
-        cp /usr/share/techoos/branding/watermark.png "$dst/watermark.png" 2>/dev/null || true
-        if [ -f "$dst/spinner.plymouth" ]; then
-            mv "$dst/spinner.plymouth" "$dst/techoos.plymouth"
-            sed -i 's/^Name=.*/Name=TechoOS/' "$dst/techoos.plymouth"
-        fi
-        plymouth-set-default-theme techoos || true
-    fi
-    KVER="$(ls /usr/lib/modules | head -1)"
-    if [ -n "$KVER" ] && [ -d "/usr/lib/modules/$KVER" ]; then
-        dracut --force --no-hostonly --add ostree --kver "$KVER" \
-            "/usr/lib/modules/$KVER/initramfs.img" \
-            || echo "WARNING: initramfs regen failed; Containerfile guard will catch it"
-    fi
+    plymouth-set-default-theme bgrt || true
 fi
+KVER="$(ls /usr/lib/modules | head -1)"
+if [ -n "$KVER" ] && [ -d "/usr/lib/modules/$KVER" ]; then
+    dracut --force --no-hostonly --add ostree --kver "$KVER" \
+        "/usr/lib/modules/$KVER/initramfs.img" \
+        || echo "WARNING: initramfs regen failed; Containerfile guard will catch it"
+fi
+
+# --- Login screen (GDM): TechoOS logo, not Fedora/Bazzite (your request #3) ---
+# The diag found the greeter logo at /usr/share/pixmaps/fedora-gdm-logo.png.
+if [ -f /usr/share/pixmaps/fedora-gdm-logo.png ]; then
+    cp /usr/share/techoos/branding/watermark.png /usr/share/pixmaps/fedora-gdm-logo.png
+fi
+# Tell the GNOME greeter to actually show that logo
+mkdir -p /etc/dconf/db/gdm.d
+cat > /etc/dconf/db/gdm.d/01-techoos-logo <<'EOF'
+[org/gnome/login-screen]
+logo='/usr/share/pixmaps/fedora-gdm-logo.png'
+EOF
+
+# --- Installer branding (Anaconda) — your request #2 ---
+# The diag confirmed the installer pixmaps ship in the image at
+# /usr/share/anaconda/pixmaps (from the fedora-logos package), so we replace
+# them directly in the image — the reliable way, no product.img hack needed.
+APX=/usr/share/anaconda/pixmaps
+if [ -d "$APX" ]; then
+    [ -f /usr/share/techoos/installer/installer-sidebar-logo.png ] && cp /usr/share/techoos/installer/installer-sidebar-logo.png "$APX/sidebar-logo.png" || true
+    [ -f /usr/share/techoos/installer/installer-sidebar-bg.png ]   && cp /usr/share/techoos/installer/installer-sidebar-bg.png   "$APX/sidebar-bg.png" || true
+    [ -f /usr/share/techoos/installer/installer-topbar-bg.png ]    && cp /usr/share/techoos/installer/installer-topbar-bg.png    "$APX/topbar-bg.png" || true
+    [ -f /usr/share/techoos/installer/installer-sidebar-logo.png ] && cp /usr/share/techoos/installer/installer-sidebar-logo.png "$APX/anaconda_header.png" || true
+fi
+
+# Compile the GDM dconf database so the login logo takes effect
+dconf update || true
 
 
 # --- Remove Bazzite artwork so only TechoOS branding remains ---
@@ -165,11 +192,11 @@ SH
 fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.5"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.6"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.5 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.5 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.6 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.6 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release
