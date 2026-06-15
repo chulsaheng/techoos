@@ -148,13 +148,13 @@ jobs:
             Get-FileHash ${base}
           EOT
 
-          echo "Publishing release techoos-2.0.6…"
-          gh release view techoos-2.0.6 --repo ${{ github.repository }} >/dev/null 2>&1 \
-            || gh release create techoos-2.0.6 --repo ${{ github.repository }} \
+          echo "Publishing release techoos-2.0.7…"
+          gh release view techoos-2.0.7 --repo ${{ github.repository }} >/dev/null 2>&1 \
+            || gh release create techoos-2.0.7 --repo ${{ github.repository }} \
                  --title "TechoOS 2.0.2 (Angkor)" \
                  --notes "Compressed, split ISO downloads served from GitHub's CDN. Download all parts for an edition plus its REJOIN and SHA256SUMS files, then reassemble." \
                  --latest
-          gh release upload techoos-2.0.6 --repo ${{ github.repository }} --clobber "$work"/*
+          gh release upload techoos-2.0.7 --repo ${{ github.repository }} --clobber "$work"/*
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
