@@ -13,11 +13,13 @@ dnf5 install -y wine winetricks
 
 # Khmer language support: Noto Khmer fonts (sans, serif, UI)
 dnf5 install -y google-noto-sans-khmer-fonts google-noto-serif-khmer-fonts google-noto-sans-khmer-ui-fonts
-# KhmerOS font family for LibreOffice / legacy Khmer documents.
-# Package name varies by release; try known names, never fail the build.
-for pkg in khmer-os-fonts khmeros-fonts khmeros-base-fonts khmer-os-system-fonts; do
-    dnf5 install -y "$pkg" 2>/dev/null && { echo "Installed $pkg"; break; } || true
-done
+# All Khmer OS font families (Battambang, Bokor, Content, Fasthand, Freehand,
+# Metal Chrieng, Muol, Muol Light/Pali, Siemreap, System, ...). Fedora ships
+# them as khmer-os-*-fonts; a glob installs every available family at once.
+mkdir -p /usr/share/techoos
+dnf5 install -y 'khmer-os*' 2>/dev/null && echo "Installed khmer-os* fonts" || \
+dnf5 install -y 'khmeros*' 2>/dev/null && echo "Installed khmeros* fonts" || \
+echo "WARNING: no Khmer OS font packages matched"
 
 # --- Pre-installed app suite (baked into the image like Nobara/Ubuntu Studio) ---
 # These are native RPMs from Fedora + RPMFusion (already enabled on Bazzite), so
@@ -29,9 +31,10 @@ APPS=(
   firefox                        # web browser
   libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw
   libreoffice-langpack-km        # Khmer LibreOffice interface/spelling
-  gimp inkscape blender darktable digikam
+  gimp krita inkscape blender darktable digikam eog
   vlc audacity kdenlive obs-studio HandBrake-gui
   pdfarranger qbittorrent
+  godot gnome-weather
 )
 for pkg in "${APPS[@]}"; do
     if dnf5 install -y "$pkg" >>/usr/share/techoos/app-install.log 2>&1; then
@@ -192,11 +195,11 @@ SH
 fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.7"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.8"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.7 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.7 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.8 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.8 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release

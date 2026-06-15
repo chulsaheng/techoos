@@ -1,6 +1,6 @@
 [Unit]
 Description=Retry TechoOS app suite install until complete
-ConditionPathExists=!/var/lib/techoos/flatpaks-done.v3
+ConditionPathExists=!/var/lib/techoos/flatpaks-done.v4
 
 [Timer]
 OnBootSec=90s

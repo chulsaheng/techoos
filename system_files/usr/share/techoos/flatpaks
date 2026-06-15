@@ -2,3 +2,5 @@
 # (The office + media suite is baked into the image as native RPMs.)
 org.onlyoffice.desktopeditors
 com.brave.Browser
+net.cozic.joplin_desktop
+org.telegram.desktop
