@@ -1,18 +1,21 @@
-# TechoOS 2.0 system defaults
+# TechoOS system defaults
 [org/gnome/desktop/interface]
 enable-animations=false
 icon-theme='Papirus'
+accent-color='yellow'
+color-scheme='default'
 
 [org/gnome/shell]
 enabled-extensions=['dash-to-dock@micxgx.gmail.com']
 
 [org/gnome/desktop/background]
-picture-uri='file:///usr/share/backgrounds/techoos/techoos-default.jpg'
-picture-uri-dark='file:///usr/share/backgrounds/techoos/techoos-default.jpg'
+picture-uri='file:///usr/share/backgrounds/techoos/techoos-slideshow.xml'
+picture-uri-dark='file:///usr/share/backgrounds/techoos/techoos-slideshow.xml'
 picture-options='zoom'
 
 [org/gnome/desktop/screensaver]
 picture-uri='file:///usr/share/backgrounds/techoos/techoos-default.jpg'
+picture-options='zoom'
 
 [org/gnome/shell/weather]
 automatic-location=false

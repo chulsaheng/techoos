@@ -35,6 +35,7 @@ APPS=(
   vlc audacity kdenlive obs-studio HandBrake-gui
   pdfarranger qbittorrent
   godot gnome-weather
+  evince evolution thunderbird gnome-calendar gnome-chess aisleriot
 )
 for pkg in "${APPS[@]}"; do
     if dnf5 install -y "$pkg" >>/usr/share/techoos/app-install.log 2>&1; then
@@ -195,11 +196,11 @@ SH
 fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.8"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.9"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.8 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.8 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.9 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.9 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release

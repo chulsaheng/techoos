@@ -2,9 +2,13 @@
 <!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
 <wallpapers>
   <wallpaper deleted="false">
-    <name>TechoOS — Kingdom of Wonder</name>
-    <filename>/usr/share/backgrounds/techoos/techoos-default.jpg</filename>
-    <filename-dark>/usr/share/backgrounds/techoos/techoos-default.jpg</filename-dark>
+    <name>TechoOS — Kingdom (rotating)</name>
+    <filename>/usr/share/backgrounds/techoos/techoos-slideshow.xml</filename>
+    <options>zoom</options>
+  </wallpaper>
+  <wallpaper deleted="false">
+    <name>TechoOS — Cambodia 2026</name>
+    <filename>/usr/share/backgrounds/techoos/techoos-01.jpg</filename>
     <options>zoom</options>
   </wallpaper>
 </wallpapers>

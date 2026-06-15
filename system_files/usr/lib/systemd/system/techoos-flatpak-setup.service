@@ -2,7 +2,7 @@
 Description=TechoOS app suite installer
 Wants=network-online.target
 After=network-online.target
-ConditionPathExists=!/var/lib/techoos/flatpaks-done.v4
+ConditionPathExists=!/var/lib/techoos/flatpaks-done.v5
 
 [Service]
 Type=oneshot
