@@ -1,0 +1,40 @@
+name: Diagnose boot and login
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: read
+  issues: write
+jobs:
+  diag:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Inspect Plymouth + GDM + installer branding
+        run: |
+          IMG=ghcr.io/chulsaheng/techoos:latest
+          sudo podman pull "$IMG" 2>/dev/null
+          run() { sudo podman run --rm "$IMG" bash -c "$1" 2>/dev/null; }
+          {
+            echo "=== default plymouth theme ==="
+            run "plymouth-set-default-theme 2>/dev/null; echo '---conf---'; cat /etc/plymouth/plymouthd.conf 2>/dev/null; cat /usr/share/plymouth/plymouthd.defaults 2>/dev/null | grep -i theme"
+            echo "=== plymouth themes present ==="
+            run "ls /usr/share/plymouth/themes/"
+            echo "=== bgrt theme files ==="
+            run "ls -la /usr/share/plymouth/themes/bgrt/ 2>/dev/null; echo '--- bgrt .plymouth ---'; cat /usr/share/plymouth/themes/bgrt/bgrt.plymouth 2>/dev/null"
+            echo "=== our techoos theme (if any) ==="
+            run "ls -la /usr/share/plymouth/themes/techoos/ 2>/dev/null; cat /usr/share/plymouth/themes/techoos/techoos.plymouth 2>/dev/null"
+            echo "=== bazzite images in plymouth ==="
+            run "find /usr/share/plymouth -iname '*bazzite*' -o -iname 'watermark*' -o -iname '*logo*' 2>/dev/null"
+            echo "=== GDM / login branding ==="
+            run "find /usr/share /etc -path '*gdm*' \( -iname '*bazzite*' -o -iname '*logo*' \) 2>/dev/null | head; echo '---dconf gdm---'; grep -rl bazzite /etc/dconf /usr/share/glib-2.0/schemas 2>/dev/null | head"
+            echo "=== anaconda branding in image ==="
+            run "rpm -qa 2>/dev/null | grep -iE 'anaconda|logos|backgrounds' | head; ls /usr/share/anaconda/pixmaps 2>/dev/null | head"
+          } > d.txt
+          echo done
+      - name: Post
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          { echo '### Boot/login diagnostic'; echo '```'; cat d.txt; echo '```'; } > c.md
+          gh issue comment 2 --repo ${{ github.repository }} --body-file c.md
