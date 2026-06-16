@@ -4,7 +4,7 @@
 set -uo pipefail
 
 FLATPAK_LIST="/usr/share/techoos/flatpaks"
-STAMP="/var/lib/techoos/flatpaks-done.v5"   # v3: new logic, ignores old stamps
+STAMP="/var/lib/techoos/flatpaks-done.v6"   # v3: new logic, ignores old stamps
 mkdir -p /var/lib/techoos
 
 [[ -f "$STAMP" ]] && { echo "TechoOS flatpaks already complete."; exit 0; }
