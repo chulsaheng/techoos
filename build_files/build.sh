@@ -48,7 +48,7 @@ done
 echo "App suite layering finished. Summary in /usr/share/techoos/app-install.log"
 
 # --- GNOME edition extras ---
-if [ "$VARIANT" = "gnome" ]; then
+if [ "$VARIANT" = "gnome" ] || [ "$VARIANT" = "deck" ]; then
     # Dash to Dock + Papirus icon theme
     dnf5 install -y gnome-shell-extension-dash-to-dock papirus-icon-theme
 
@@ -197,11 +197,11 @@ SH
 fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.12"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.13"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.12 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.12 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.13 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.13 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release

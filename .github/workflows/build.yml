@@ -39,6 +39,9 @@ jobs:
           - variant: kde
             image-name: techoos-kde
             base-image: ghcr.io/ublue-os/bazzite-nvidia-open:stable
+          - variant: deck
+            image-name: techoos-deck
+            base-image: ghcr.io/ublue-os/bazzite-deck-gnome:stable
 
     permissions:
       contents: read

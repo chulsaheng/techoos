@@ -54,6 +54,10 @@ jobs:
             image-name: techoos-kde
             config-file: ./disk_config/iso-kde.toml
             iso-name: TechoOS-KDE.iso
+          - variant: deck
+            image-name: techoos-deck
+            config-file: ./disk_config/iso-deck.toml
+            iso-name: TechoOS-Deck.iso
     permissions:
       contents: write
       packages: read
@@ -179,13 +183,13 @@ jobs:
             Get-FileHash ${base}
           EOT
 
-          echo "Publishing release techoos-2.0.12…"
-          gh release view techoos-2.0.12 --repo ${{ github.repository }} >/dev/null 2>&1 \
-            || gh release create techoos-2.0.12 --repo ${{ github.repository }} \
+          echo "Publishing release techoos-2.0.13…"
+          gh release view techoos-2.0.13 --repo ${{ github.repository }} >/dev/null 2>&1 \
+            || gh release create techoos-2.0.13 --repo ${{ github.repository }} \
                  --title "TechoOS 2.0.2 (Angkor)" \
                  --notes "Compressed, split ISO downloads served from GitHub's CDN. Download all parts for an edition plus its REJOIN and SHA256SUMS files, then reassemble." \
                  --latest
-          gh release upload techoos-2.0.12 --repo ${{ github.repository }} --clobber "$work"/*
+          gh release upload techoos-2.0.13 --repo ${{ github.repository }} --clobber "$work"/*
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
