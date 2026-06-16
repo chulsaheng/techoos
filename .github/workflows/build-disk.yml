@@ -108,6 +108,37 @@ jobs:
             echo "Renamed $f -> ${{ matrix.iso-name }}"
           done
 
+      - name: Brand the Anaconda installer (product.img overlay)
+        run: |
+          set -e
+          sudo apt-get update -qq && sudo apt-get install -y -qq xorriso cpio gzip
+          ISO=$(sudo find "${{ steps.build.outputs.output-directory }}" -name "${{ matrix.iso-name }}" | head -1)
+          echo "Branding installer on $ISO"
+          # Anaconda auto-loads /images/product.img and overlays it onto the
+          # installer root, so files at usr/share/anaconda/pixmaps/ replace the
+          # stock fedora-logos branding regardless of how BIB built the installer.
+          PX=/tmp/prod/usr/share/anaconda/pixmaps
+          mkdir -p "$PX"
+          cp branding/installer/installer-sidebar-bg.png   "$PX/sidebar-bg.png"
+          cp branding/installer/installer-sidebar-logo.png "$PX/sidebar-logo.png"
+          cp branding/installer/installer-topbar-bg.png    "$PX/topbar-bg.png"
+          cp branding/installer/installer-sidebar-logo.png "$PX/anaconda_header.png"
+          # CSS so the GTK installer uses our sidebar art (matches Anaconda classes)
+          cat > "$PX/../anaconda-gtk.css" <<'CSS'
+          .logo-sidebar { background-image: url('/usr/share/anaconda/pixmaps/sidebar-bg.png'); background-color: #14201B; background-repeat: no-repeat; background-size: cover; }
+          .logo { background-image: url('/usr/share/anaconda/pixmaps/sidebar-logo.png'); background-position: 50% 20px; background-repeat: no-repeat; }
+          .product-logo { background-image: url('/usr/share/anaconda/pixmaps/sidebar-logo.png'); }
+          CSS
+          # Pack as a gzipped cpio = product.img
+          (cd /tmp/prod && find . | cpio -c -o --quiet | gzip -9) > /tmp/product.img
+          ls -la /tmp/product.img
+          # Inject into the ISO at the path Anaconda auto-loads
+          sudo xorriso -indev "$ISO" -outdev "$ISO.b" \
+            -boot_image any replay \
+            -map /tmp/product.img /images/product.img
+          sudo mv "$ISO.b" "$ISO"
+          echo "product.img injected at /images/product.img"
+
       - name: Compress, split, and publish to GitHub Release
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
         env:
@@ -148,13 +179,13 @@ jobs:
             Get-FileHash ${base}
           EOT
 
-          echo "Publishing release techoos-2.0.11…"
-          gh release view techoos-2.0.11 --repo ${{ github.repository }} >/dev/null 2>&1 \
-            || gh release create techoos-2.0.11 --repo ${{ github.repository }} \
+          echo "Publishing release techoos-2.0.12…"
+          gh release view techoos-2.0.12 --repo ${{ github.repository }} >/dev/null 2>&1 \
+            || gh release create techoos-2.0.12 --repo ${{ github.repository }} \
                  --title "TechoOS 2.0.2 (Angkor)" \
                  --notes "Compressed, split ISO downloads served from GitHub's CDN. Download all parts for an edition plus its REJOIN and SHA256SUMS files, then reassemble." \
                  --latest
-          gh release upload techoos-2.0.11 --repo ${{ github.repository }} --clobber "$work"/*
+          gh release upload techoos-2.0.12 --repo ${{ github.repository }} --clobber "$work"/*
 
       - name: Upload disk images and Checksum to Job Artifacts
         if: inputs.upload-to-s3 != true && github.event_name != 'pull_request'
