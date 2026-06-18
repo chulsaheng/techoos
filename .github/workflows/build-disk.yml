@@ -54,10 +54,6 @@ jobs:
             image-name: techoos-kde
             config-file: ./disk_config/iso-kde.toml
             iso-name: TechoOS-KDE.iso
-          - variant: deck
-            image-name: techoos-deck
-            config-file: ./disk_config/iso-deck.toml
-            iso-name: TechoOS-Deck.iso
     permissions:
       contents: write
       packages: read
