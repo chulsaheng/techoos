@@ -31,10 +31,10 @@ APPS=(
   firefox                        # web browser
   libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw
   libreoffice-langpack-km        # Khmer LibreOffice interface/spelling
-  gimp krita inkscape blender darktable digikam eog
-  vlc audacity kdenlive obs-studio HandBrake-gui
+  digikam eog
+  vlc audacity
   pdfarranger qbittorrent
-  godot gnome-weather
+  gnome-weather
   evince evolution thunderbird gnome-calendar gnome-chess aisleriot
   lutris vkd3d                    # Windows-app compatibility (Wine prefix managers / D3D12->Vulkan)
 )
@@ -197,11 +197,11 @@ SH
 fi
 
 # --- Branding: TechoOS 2.0 identity ---
-sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.14"/' /usr/lib/os-release
+sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="TechoOS 2.0.15"/' /usr/lib/os-release
 sed -i 's/^NAME=.*/NAME="TechoOS"/' /usr/lib/os-release
 grep -q '^VERSION=' /usr/lib/os-release && \
-    sed -i 's/^VERSION=.*/VERSION="2.0.14 (Angkor)"/' /usr/lib/os-release || \
-    echo 'VERSION="2.0.14 (Angkor)"' >> /usr/lib/os-release
+    sed -i 's/^VERSION=.*/VERSION="2.0.15 (Angkor)"/' /usr/lib/os-release || \
+    echo 'VERSION="2.0.15 (Angkor)"' >> /usr/lib/os-release
 grep -q '^LOGO=' /usr/lib/os-release && \
     sed -i 's/^LOGO=.*/LOGO=techoos/' /usr/lib/os-release || \
     echo 'LOGO=techoos' >> /usr/lib/os-release
